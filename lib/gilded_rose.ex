@@ -72,14 +72,7 @@ defmodule GildedRose do
             end
         end
 
-      item =
-        cond do
-          item.name != "Sulfuras, Hand of Ragnaros" ->
-            %{item | sell_in: item.sell_in - 1}
-
-          true ->
-            item
-        end
+      item = adjust_sell_in(item)
 
       item =
         cond do
@@ -138,4 +131,7 @@ defmodule GildedRose do
       Item.new("Conjured Mana Cake", 3, 6)
     ]
   end
+
+  defp adjust_sell_in(item = %Item{name: "Sulfuras, Hand of Ragnaros"}), do: item
+  defp adjust_sell_in(item = %Item{}), do: %Item{item | sell_in: item.sell_in - 1}
 end
