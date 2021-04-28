@@ -15,103 +15,10 @@ defmodule GildedRose do
       item = Agent.get(agent, &Enum.at(&1, i))
 
       item =
-        cond do
-          item.name != "Aged Brie" && item.name != "Backstage passes to a TAFKAL80ETC concert" ->
-            if item.quality > 0 do
-              if item.name != "Sulfuras, Hand of Ragnaros" do
-                %{item | quality: item.quality - 1}
-              else
-                item
-              end
-            else
-              item
-            end
-
-          true ->
-            cond do
-              item.quality < 50 ->
-                item = %{item | quality: item.quality + 1}
-
-                cond do
-                  item.name == "Backstage passes to a TAFKAL80ETC concert" ->
-                    item =
-                      cond do
-                        item.sell_in < 11 ->
-                          cond do
-                            item.quality < 50 ->
-                              %{item | quality: item.quality + 1}
-
-                            true ->
-                              item
-                          end
-
-                        true ->
-                          item
-                      end
-
-                    cond do
-                      item.sell_in < 6 ->
-                        cond do
-                          item.quality < 50 ->
-                            %{item | quality: item.quality + 1}
-
-                          true ->
-                            item
-                        end
-
-                      true ->
-                        item
-                    end
-
-                  true ->
-                    item
-                end
-
-              true ->
-                item
-            end
-        end
-
-      item = adjust_sell_in(item)
-
-      item =
-        cond do
-          item.sell_in < 0 ->
-            cond do
-              item.name != "Aged Brie" ->
-                cond do
-                  item.name != "Backstage passes to a TAFKAL80ETC concert" ->
-                    cond do
-                      item.quality > 0 ->
-                        cond do
-                          item.name != "Sulfuras, Hand of Ragnaros" ->
-                            %{item | quality: item.quality - 1}
-
-                          true ->
-                            item
-                        end
-
-                      true ->
-                        item
-                    end
-
-                  true ->
-                    %{item | quality: item.quality - item.quality}
-                end
-
-              true ->
-                cond do
-                  item.quality < 50 ->
-                    %{item | quality: item.quality + 1}
-
-                  true ->
-                    item
-                end
-            end
-
-          true ->
-            item
-        end
+        item
+        |> preliminary_quality_adjustment()
+        |> adjust_sell_in()
+        |> post_aging_quality_adjustment()
 
       Agent.update(agent, &List.replace_at(&1, i, item))
     end
@@ -132,6 +39,52 @@ defmodule GildedRose do
     ]
   end
 
+  defp preliminary_quality_adjustment(item = %Item{name: "Sulfuras, Hand of Ragnaros"}), do: item
+
+  # if there is room to increase quality do it
+  defp preliminary_quality_adjustment(item = %Item{name: "Aged Brie", quality: quality})
+       when quality < 50,
+       do: %Item{item | quality: quality + 1}
+
+  # quality cannot be improved so return the item
+  defp preliminary_quality_adjustment(item = %Item{name: "Aged Brie"}), do: item
+
+  defp preliminary_quality_adjustment(
+         item = %Item{name: "Backstage passes" <> _, quality: quality}
+       )
+       when quality < 50 do
+    cond do
+      item.sell_in < 6 ->
+        %Item{item | quality: quality + 3}
+
+      item.sell_in < 11 ->
+        %Item{item | quality: quality + 2}
+
+      true ->
+        %Item{item | quality: quality + 1}
+    end
+  end
+
+  defp preliminary_quality_adjustment(item = %Item{name: "Backstage passes" <> _}), do: item
+
+  defp preliminary_quality_adjustment(item = %Item{quality: quality}) when quality > 0,
+    do: %Item{item | quality: quality - 1}
+
+  defp preliminary_quality_adjustment(item = %Item{}), do: item
+
   defp adjust_sell_in(item = %Item{name: "Sulfuras, Hand of Ragnaros"}), do: item
   defp adjust_sell_in(item = %Item{}), do: %Item{item | sell_in: item.sell_in - 1}
+
+  defp post_aging_quality_adjustment(item = %Item{sell_in: sell_in}) when sell_in >= 0, do: item
+
+  defp post_aging_quality_adjustment(item = %Item{name: "Backstage passes" <> _}),
+    do: %Item{item | quality: 0}
+
+  defp post_aging_quality_adjustment(item = %Item{name: "Aged Brie"}), do: item
+  defp post_aging_quality_adjustment(item = %Item{name: "Sulfuras, Hand of Ragnaros"}), do: item
+
+  defp post_aging_quality_adjustment(item = %Item{quality: quality}) when quality > 0,
+    do: %Item{item | quality: quality - 1}
+
+  defp post_aging_quality_adjustment(item = %Item{}), do: item
 end
