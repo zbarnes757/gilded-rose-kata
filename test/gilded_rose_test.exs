@@ -81,4 +81,20 @@ defmodule GildedRoseTest do
       assert [%GildedRose.Item{sell_in: -1, quality: 0}] = GildedRose.items(gilded_rose)
     end
   end
+
+  describe "\"Conjured\" items" do
+    test "should have their quality decreased by 2 when not expired" do
+      items = [Item.new("Conjured Mana Cake", 3, 6)]
+      gilded_rose = GildedRose.new(items)
+      assert :ok == GildedRose.update_quality(gilded_rose)
+      assert [%GildedRose.Item{sell_in: 2, quality: 4}] = GildedRose.items(gilded_rose)
+    end
+
+    test "should have their quality decreased by 4 when not expired" do
+      items = [Item.new("Conjured Mana Cake", 0, 6)]
+      gilded_rose = GildedRose.new(items)
+      assert :ok == GildedRose.update_quality(gilded_rose)
+      assert [%GildedRose.Item{sell_in: -1, quality: 2}] = GildedRose.items(gilded_rose)
+    end
+  end
 end

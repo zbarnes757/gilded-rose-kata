@@ -46,31 +46,38 @@ defmodule GildedRose do
 
   defp do_quality_adjustment(item = %Item{name: "Sulfuras, Hand of Ragnaros"}), do: item
 
-  defp do_quality_adjustment(item = %Item{name: "Aged Brie", quality: quality}),
-    do: %Item{item | quality: max_quality(quality, 1)}
+  defp do_quality_adjustment(item = %Item{name: "Aged Brie"}),
+    do: %Item{item | quality: max_quality(item.quality, 1)}
 
-  defp do_quality_adjustment(item = %Item{name: "Backstage passes" <> _, quality: quality}) do
+  defp do_quality_adjustment(item = %Item{name: "Backstage passes" <> _}) do
     cond do
       item.sell_in < 0 ->
         %Item{item | quality: 0}
 
       item.sell_in < 6 ->
-        %Item{item | quality: max_quality(quality, 3)}
+        %Item{item | quality: max_quality(item.quality, 3)}
 
       item.sell_in < 11 ->
-        %Item{item | quality: max_quality(quality, 2)}
+        %Item{item | quality: max_quality(item.quality, 2)}
 
       true ->
-        %Item{item | quality: max_quality(quality, 1)}
+        %Item{item | quality: max_quality(item.quality, 1)}
     end
   end
 
-  defp do_quality_adjustment(item = %Item{quality: quality, sell_in: sell_in})
+  defp do_quality_adjustment(item = %Item{name: "Conjured" <> _, sell_in: sell_in})
        when sell_in < 0,
-       do: %Item{item | quality: min_quality(quality, 2)}
+       do: %Item{item | quality: min_quality(item.quality, 4)}
 
-  defp do_quality_adjustment(item = %Item{quality: quality}),
-    do: %Item{item | quality: min_quality(quality, 1)}
+  defp do_quality_adjustment(item = %Item{name: "Conjured" <> _}),
+    do: %Item{item | quality: min_quality(item.quality, 2)}
+
+  defp do_quality_adjustment(item = %Item{sell_in: sell_in})
+       when sell_in < 0,
+       do: %Item{item | quality: min_quality(item.quality, 2)}
+
+  defp do_quality_adjustment(item = %Item{}),
+    do: %Item{item | quality: min_quality(item.quality, 1)}
 
   defp max_quality(base, addition), do: Kernel.min(base + addition, @max_quality)
   defp min_quality(base, subtraction), do: Kernel.max(base - subtraction, @min_quality)
