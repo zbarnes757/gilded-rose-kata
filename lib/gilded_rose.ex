@@ -49,6 +49,9 @@ defmodule GildedRose do
   defp do_quality_adjustment(item = %Item{name: "Aged Brie"}),
     do: %Item{item | quality: increment_quality(item.quality)}
 
+  defp do_quality_adjustment(item = %Item{name: "Cheddar"}),
+    do: %Item{item | quality: increment_quality(item.quality, 1, 20)}
+
   defp do_quality_adjustment(item = %Item{name: "Backstage passes" <> _}) do
     cond do
       item.sell_in < 0 ->
@@ -79,6 +82,8 @@ defmodule GildedRose do
   defp do_quality_adjustment(item = %Item{}),
     do: %Item{item | quality: decrement_quality(item.quality)}
 
-  defp increment_quality(quality, amount \\ 1), do: Kernel.min(quality + amount, @max_quality)
+  defp increment_quality(quality, amount \\ 1, max \\ @max_quality),
+    do: Kernel.min(quality + amount, max)
+
   defp decrement_quality(quality, amount \\ 1), do: Kernel.max(quality - amount, @min_quality)
 end

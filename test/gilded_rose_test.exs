@@ -97,4 +97,17 @@ defmodule GildedRoseTest do
       assert [%GildedRose.Item{sell_in: -1, quality: 2}] = GildedRose.items(gilded_rose)
     end
   end
+
+  test "\"Cheddar\" should not increase in quality beyond 20" do
+    items = [Item.new("Cheddar", 5, 19)]
+    gilded_rose = GildedRose.new(items)
+
+    # age once
+    assert :ok == GildedRose.update_quality(gilded_rose)
+    assert [%GildedRose.Item{sell_in: 4, quality: 20}] = GildedRose.items(gilded_rose)
+
+    # age once
+    assert :ok == GildedRose.update_quality(gilded_rose)
+    assert [%GildedRose.Item{sell_in: 3, quality: 20}] = GildedRose.items(gilded_rose)
+  end
 end
