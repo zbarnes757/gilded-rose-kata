@@ -2,8 +2,13 @@ defmodule GildedRose do
   use Agent
   alias GildedRose.Item
 
-  @max_quality 50
-  @min_quality 0
+  alias GildedRose.Items.{
+    BackstagePass,
+    Cheese,
+    Common,
+    Conjured,
+    Legendary
+  }
 
   def new(items \\ default_items()) do
     {:ok, agent} = Agent.start_link(fn -> items end)
@@ -17,10 +22,12 @@ defmodule GildedRose do
     for i <- 0..(Agent.get(agent, &length/1) - 1) do
       item = Agent.get(agent, &Enum.at(&1, i))
 
+      module = assign_behaviour_module(item)
+
       item =
         item
-        |> age_item()
-        |> do_quality_adjustment()
+        |> age_item(module)
+        |> do_quality_adjustment(module)
 
       Agent.update(agent, &List.replace_at(&1, i, item))
     end
@@ -41,49 +48,27 @@ defmodule GildedRose do
     ]
   end
 
-  defp age_item(item = %Item{name: "Sulfuras, Hand of Ragnaros"}), do: item
-  defp age_item(item = %Item{}), do: %Item{item | sell_in: item.sell_in - 1}
+  @behaviour_mapping [
+    {~w(backstage)s, BackstagePass},
+    {~w(cheese brie parmesan cheddar)s, Cheese},
+    {~w(conjured)s, Conjured},
+    {~w(sulfuras)s, Legendary}
+  ]
 
-  defp do_quality_adjustment(item = %Item{name: "Sulfuras, Hand of Ragnaros"}), do: item
+  defp assign_behaviour_module(%Item{name: name}) do
+    normalized_name = String.downcase(name)
 
-  defp do_quality_adjustment(item = %Item{name: "Aged Brie"}),
-    do: %Item{item | quality: increment_quality(item.quality)}
-
-  defp do_quality_adjustment(item = %Item{name: "Cheddar"}),
-    do: %Item{item | quality: increment_quality(item.quality, 1, 20)}
-
-  defp do_quality_adjustment(item = %Item{name: "Backstage passes" <> _}) do
-    cond do
-      item.sell_in < 0 ->
-        %Item{item | quality: 0}
-
-      item.sell_in < 6 ->
-        %Item{item | quality: increment_quality(item.quality, 3)}
-
-      item.sell_in < 11 ->
-        %Item{item | quality: increment_quality(item.quality, 2)}
-
-      true ->
-        %Item{item | quality: increment_quality(item.quality)}
-    end
+    Enum.reduce_while(@behaviour_mapping, Common, fn {search_terms, module}, current_module ->
+      # if the normalized name contains any of the search terms, use that module
+      if Enum.any?(search_terms, &String.contains?(normalized_name, &1)) do
+        {:halt, module}
+      else
+        {:cont, current_module}
+      end
+    end)
   end
 
-  defp do_quality_adjustment(item = %Item{name: "Conjured" <> _, sell_in: sell_in})
-       when sell_in < 0,
-       do: %Item{item | quality: decrement_quality(item.quality, 4)}
+  defp age_item(item, module), do: apply(module, :age_item, [item])
 
-  defp do_quality_adjustment(item = %Item{name: "Conjured" <> _}),
-    do: %Item{item | quality: decrement_quality(item.quality, 2)}
-
-  defp do_quality_adjustment(item = %Item{sell_in: sell_in})
-       when sell_in < 0,
-       do: %Item{item | quality: decrement_quality(item.quality, 2)}
-
-  defp do_quality_adjustment(item = %Item{}),
-    do: %Item{item | quality: decrement_quality(item.quality)}
-
-  defp increment_quality(quality, amount \\ 1, max \\ @max_quality),
-    do: Kernel.min(quality + amount, max)
-
-  defp decrement_quality(quality, amount \\ 1), do: Kernel.max(quality - amount, @min_quality)
+  defp do_quality_adjustment(item, module), do: apply(module, :adjust_quality, [item])
 end
