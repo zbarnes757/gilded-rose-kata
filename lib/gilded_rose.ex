@@ -56,11 +56,11 @@ defmodule GildedRose do
   ]
 
   defp assign_behaviour_module(%Item{name: name}) do
-    normalized_name = String.downcase(name)
+    item_name = String.downcase(name)
 
     Enum.reduce_while(@behaviour_mapping, Common, fn {search_terms, module}, current_module ->
       # if the normalized name contains any of the search terms, use that module
-      if Enum.any?(search_terms, &String.contains?(normalized_name, &1)) do
+      if Enum.any?(search_terms, &String.contains?(item_name, &1)) do
         {:halt, module}
       else
         {:cont, current_module}

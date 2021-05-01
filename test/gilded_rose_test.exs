@@ -110,4 +110,11 @@ defmodule GildedRoseTest do
     assert :ok == GildedRose.update_quality(gilded_rose)
     assert [%GildedRose.Item{sell_in: 3, quality: 20}] = GildedRose.items(gilded_rose)
   end
+
+  test "should handle mistyped item names as the intended item" do
+    items = [Item.new("aGEd bRIe CheESe", 2, 0)]
+    gilded_rose = GildedRose.new(items)
+    assert :ok == GildedRose.update_quality(gilded_rose)
+    assert [%GildedRose.Item{sell_in: 1, quality: 1}] = GildedRose.items(gilded_rose)
+  end
 end
